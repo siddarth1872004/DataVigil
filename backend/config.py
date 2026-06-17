@@ -31,9 +31,20 @@ DATABASE_SYNC_URL: str = DATABASE_URL.replace(
 # ── LLM API Keys ─────────────────────────────────────────────────────────────
 GOOGLE_API_KEY: str = os.environ.get("GOOGLE_API_KEY", "")
 OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
+HUGGINGFACE_API_KEY: str = os.environ.get("HUGGINGFACE_API_KEY", os.environ.get("HF_TOKEN", ""))
 
-LLM_PROVIDER: str = os.environ.get("LLM_PROVIDER", "google")  # "google" | "openai"
+LLM_PROVIDER: str = os.environ.get("LLM_PROVIDER", "google")  # "google" | "openai" | "huggingface"
 LLM_MODEL: str = os.environ.get("LLM_MODEL", "gemini-1.5-flash")
+
+if LLM_PROVIDER == "huggingface" and LLM_MODEL == "gemini-1.5-flash":
+    LLM_MODEL = "Qwen/Qwen2.5-Coder-32B-Instruct"
+
+HF_INJECTION_MODEL: str = os.environ.get(
+    "HF_INJECTION_MODEL", "protectai/deberta-v3-base-prompt-injection-v2"
+)
+HF_SUMMARY_MODEL: str = os.environ.get(
+    "HF_SUMMARY_MODEL", "meta-llama/Meta-Llama-3-8B-Instruct"
+)
 
 # ── Backend API Key ───────────────────────────────────────────────────────────
 # TODO(security): In production, replace with a proper OAuth 2.0 / OIDC provider.
@@ -85,4 +96,9 @@ def validate() -> None:
         logger.warning(
             "OpenAI provider selected. Ensure you have installed: "
             "pip install 'langchain-openai>=0.2.0'"
+        )
+    if LLM_PROVIDER == "huggingface" and not HUGGINGFACE_API_KEY:
+        raise EnvironmentError(
+            "HUGGINGFACE_API_KEY (or HF_TOKEN) is required when LLM_PROVIDER='huggingface'. "
+            "Set it in your .env file."
         )

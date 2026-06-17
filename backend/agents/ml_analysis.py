@@ -95,7 +95,38 @@ def _build_anomaly_summary(df: pd.DataFrame) -> str:
                     f"({abs(delta_pct):.0f}% {direction})"
                 )
 
-    return "\n".join(lines)
+    base_summary = "\n".join(lines)
+
+    import config
+
+    if not config.HUGGINGFACE_API_KEY:
+        return base_summary
+
+    try:
+        from huggingface_hub import InferenceClient
+        client = InferenceClient(model=config.HF_SUMMARY_MODEL, token=config.HUGGINGFACE_API_KEY)
+
+        prompt = (
+            "You are a professional business intelligence and data analyst agent.\n"
+            "Below is a statistical summary of anomalous data points detected in a database query result "
+            "using Isolation Forest machine learning.\n\n"
+            f"{base_summary}\n\n"
+            "Generate a concise, professional one-paragraph markdown summary interpreting these results. "
+            "Explain the business meaning of these differences (e.g. what is significantly higher/lower in the anomalies). "
+            "Keep the summary short (3-4 sentences), factual, and directly related to the numbers above. Do not reference prompt template instructions."
+        )
+
+        logger.info("[ml_analysis] Generating natural language insights using Hugging Face: %s", config.HF_SUMMARY_MODEL)
+        response = client.text_generation(
+            prompt,
+            max_new_tokens=256,
+            temperature=0.3,
+        )
+        narrative = response.strip()
+        return f"{base_summary}\n\n**AI Data Insights (HF Llama):**\n{narrative}"
+    except Exception as exc:
+        logger.warning("[ml_analysis] Failed to generate Hugging Face insights: %s. Using base summary.", exc)
+        return base_summary
 
 
 def ml_analysis_node(state: AgentState) -> dict:

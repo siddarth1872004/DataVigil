@@ -32,8 +32,30 @@ from agents.sql_executor import sql_executor_node
 from agents.state import AgentState
 from agents.text_to_sql import text_to_sql_node
 from agents.visualization import visualization_node
+from security.huggingface_guard import huggingface_guard
+from security.query_guard import QueryGuardError
 
 logger = logging.getLogger(__name__)
+
+
+def input_guard_node(state: AgentState) -> dict:
+    """Runs the Hugging Face prompt injection guard on the incoming user query."""
+    logger.info("[input_guard] Evaluating user query...")
+    try:
+        huggingface_guard(state["user_query"])
+        return {"error_message": None}
+    except QueryGuardError as exc:
+        logger.warning("[input_guard] Query blocked: %s", exc)
+        return {"error_message": str(exc)}
+
+
+def _route_after_guard(state: AgentState) -> str:
+    """If input_guard flags an injection error, route straight to END."""
+    if state.get("error_message"):
+        logger.info("[graph] Prompt injection flagged → routing to END")
+        return END
+    logger.info("[graph] Input passed guard → routing to text_to_sql")
+    return "text_to_sql"
 
 
 def _route_after_executor(state: AgentState) -> str:
@@ -73,13 +95,24 @@ def build_graph() -> StateGraph:
     graph = StateGraph(AgentState)
 
     # ── Register nodes ──────────────────────────────────────────────────────────
+    graph.add_node("input_guard", input_guard_node)
     graph.add_node("text_to_sql", text_to_sql_node)
     graph.add_node("sql_executor", sql_executor_node)
     graph.add_node("ml_analysis", ml_analysis_node)
     graph.add_node("visualization", visualization_node)
 
     # ── Define edges ────────────────────────────────────────────────────────────
-    graph.set_entry_point("text_to_sql")
+    graph.set_entry_point("input_guard")
+
+    graph.add_conditional_edges(
+        "input_guard",
+        _route_after_guard,
+        {
+            "text_to_sql": "text_to_sql",
+            END: END,
+        },
+    )
+
     graph.add_edge("text_to_sql", "sql_executor")
 
     graph.add_conditional_edges(

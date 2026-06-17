@@ -44,6 +44,42 @@ def _build_llm():
             openai_api_key=config.OPENAI_API_KEY,
             temperature=0.0,
         )
+    elif config.LLM_PROVIDER == "huggingface":
+        class HuggingFaceInferenceLLM:
+            def __init__(self, model: str, api_key: str):
+                from huggingface_hub import InferenceClient
+                self.client = InferenceClient(model=model, token=api_key)
+
+            def invoke(self, messages):
+                hf_messages = []
+                for msg in messages:
+                    role = "user"
+                    if msg.type == "system":
+                        role = "system"
+                    elif msg.type == "ai":
+                        role = "assistant"
+                    hf_messages.append({"role": role, "content": msg.content})
+
+                logger.info(
+                    "[text_to_sql] Querying Hugging Face serverless model: %s",
+                    config.LLM_MODEL
+                )
+                response = self.client.chat_completion(
+                    messages=hf_messages,
+                    temperature=0.01,
+                    max_tokens=512,
+                )
+
+                class ResponseObject:
+                    def __init__(self, content):
+                        self.content = content
+
+                return ResponseObject(response.choices[0].message.content)
+
+        return HuggingFaceInferenceLLM(
+            model=config.LLM_MODEL,
+            api_key=config.HUGGINGFACE_API_KEY,
+        )
     else:
         raise ValueError(f"Unsupported LLM_PROVIDER: {config.LLM_PROVIDER}")
 

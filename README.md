@@ -273,9 +273,10 @@ autonomous-data-supervisor/
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GOOGLE_API_KEY` | — | **Required** Google Gemini API key |
-| `LLM_PROVIDER` | `google` | `google` or `openai` |
-| `LLM_MODEL` | `gemini-1.5-flash` | Model name |
+| `GOOGLE_API_KEY` | — | Google Gemini API key |
+| `HUGGINGFACE_API_KEY` | — | **Optional** Hugging Face API key (required for prompt guard & summary insights, or when LLM_PROVIDER is huggingface) |
+| `LLM_PROVIDER` | `google` | `google`, `openai`, or `huggingface` |
+| `LLM_MODEL` | `gemini-1.5-flash` | Model name (e.g. `Qwen/Qwen2.5-Coder-32B-Instruct` for Hugging Face) |
 | `DATABASE_URL` | SQLite demo | SQLAlchemy connection string |
 | `API_SECRET_KEY` | auto-generated | Backend authentication key |
 | `MAX_RETRIES` | `3` | Max SQL retry attempts |
@@ -286,8 +287,10 @@ autonomous-data-supervisor/
 
 ## Tech Stack
 
-- **Orchestration**: LangGraph (ReAct state graph with retry loops)
-- **LLM**: Google Gemini 1.5 Flash via LangChain
+- **Orchestration**: LangGraph (ReAct state graph with security and retry loops)
+- **LLM**: Google Gemini 1.5 Flash (default) or Hugging Face serverless (Qwen2.5-Coder)
+- **Security Guard**: Hugging Face Deberta Prompt Injection Guard + parse-level SQL guard
+- **Insights Generator**: Hugging Face Llama-3 Summarizer (NL data insights reports)
 - **Backend**: FastAPI + Uvicorn
 - **Database**: SQLite (demo) / SQLAlchemy (Postgres/MySQL compatible)
 - **ML**: Pandas + Scikit-learn (Isolation Forest)
