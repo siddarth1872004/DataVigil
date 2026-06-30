@@ -235,7 +235,7 @@ The test suite covers:
 ## Project Structure
 
 ```
-autonomous-data-supervisor/
+DataVigil/
 ├── backend/
 │   ├── main.py              # FastAPI app (security headers, auth, rate limiting)
 │   ├── config.py            # Secure config (env vars, no hardcoded secrets)
