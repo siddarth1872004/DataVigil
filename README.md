@@ -1,6 +1,6 @@
-# DataVigil -- Autonomous ReAct Data Intelligence & Anomaly Detection Agent
+# DataVigil -- Autonomous ReAct Data Intelligence and Anomaly Detection Agent
 
-DataVigil is an autonomous **ReAct Data Agent** built with **LangGraph**, **SQLite**, **Scikit-learn**, and **Plotly**. It converts natural language business queries into verified SQL statements, executes ML anomaly detection pipelines (Isolation Forest & Local Outlier Factor), and generates interactive real-time visual dashboards -- guarded by HuggingFace prompt injection protection.
+DataVigil is an autonomous **ReAct Data Agent** built with **LangGraph**, **SQLite**, **Scikit-learn**, and **Plotly**. It converts natural language business queries into verified SQL statements, executes ML anomaly detection pipelines (Isolation Forest and Local Outlier Factor), and generates interactive real-time visual dashboards -- guarded by HuggingFace prompt injection protection.
 
 ---
 
@@ -8,36 +8,41 @@ DataVigil is an autonomous **ReAct Data Agent** built with **LangGraph**, **SQLi
 
 ```mermaid
 graph TB
-    subgraph USER_INTERFACE["Interface & Dashboard"]
-        NL_IN[Natural Language Query Input]
-        PLOTLY[Plotly Interactive Charts & Visuals]
-        REST[FastAPI REST API / Web App]
+    subgraph USER_INTERFACE["Interface and Dashboard"]
+        NL_IN["Natural Language Query Input"]
+        PLOTLY["Plotly Interactive Charts and Visuals"]
+        REST["FastAPI REST API and Web App"]
     end
 
-    subgraph SECURITY_GUARD["Security & Injection Guardrail"]
-        HF_GUARD[HuggingFace Prompt Injection Classifier]
-        SQL_SAN[SQL Sanitizer & Read-Only Enforcer]
+    subgraph SECURITY_GUARD["Security and Injection Guardrail"]
+        HF_GUARD["HuggingFace Prompt Injection Classifier"]
+        SQL_SAN["SQL Sanitizer and Read-Only Enforcer"]
     end
 
     subgraph REACT_ENGINE["LangGraph ReAct Agent Loop"]
-        PLANNER[Query Planner Node]
-        SQL_GEN[SQL Generator Agent]
-        EXEC[Database Execution Engine]
-        ML_ANOM[ML Anomaly Detector Node]
-        SYNTH[Dashboard Synthesizer]
+        PLANNER["Query Planner Node"]
+        SQL_GEN["SQL Generator Agent"]
+        EXEC["Database Execution Engine"]
+        ML_ANOM["ML Anomaly Detector Node"]
+        SYNTH["Dashboard Synthesizer"]
     end
 
-    subgraph DATA_STORAGE["Data Storage & ML Engines"]
-        SQLITE[(SQLite / PostgreSQL Database)]
-        SKLEARN[Scikit-learn Isolation Forest / LOF]
+    subgraph DATA_STORAGE["Data Storage and ML Engines"]
+        SQLITE[("SQLite / PostgreSQL Database")]
+        SKLEARN["Scikit-learn Isolation Forest / LOF"]
     end
 
     NL_IN --> HF_GUARD
     HF_GUARD -->|sanitized| PLANNER
-    PLANNER --> SQL_GEN --> SQL_SAN --> EXEC
+    PLANNER --> SQL_GEN
+    SQL_GEN --> SQL_SAN
+    SQL_SAN --> EXEC
     EXEC <--> SQLITE
-    EXEC --> ML_ANOM <--> SKLEARN
-    ML_ANOM --> SYNTH --> PLOTLY & REST
+    EXEC --> ML_ANOM
+    ML_ANOM <--> SKLEARN
+    ML_ANOM --> SYNTH
+    SYNTH --> PLOTLY
+    SYNTH --> REST
 
     style USER_INTERFACE fill:#18181b,stroke:#a1a1aa,color:#fff
     style SECURITY_GUARD fill:#18181b,stroke:#ffffff,color:#fff
@@ -57,25 +62,25 @@ sequenceDiagram
     participant DB as SQL Database Engine
     participant ML as Scikit-Learn Anomaly Model
 
-    User->>Guard: Natural Language Query (e.g., "Detect unusual sales spikes")
+    User->>Guard: Natural Language Query (e.g. Detect unusual sales spikes)
     Guard->>Guard: Verify prompt injection safety
     Guard->>Agent: Pass safe natural language query
-    Agent->>Agent: Plan SQL query & anomaly parameters
+    Agent->>Agent: Plan SQL query and anomaly parameters
     Agent->>DB: Execute dynamically generated SQL
     DB-->>Agent: Return structured tabular dataset
     Agent->>ML: Run Isolation Forest / LOF outlier detection
-    ML-->>Agent: Tag anomalous rows & confidence scores
+    ML-->>Agent: Tag anomalous rows and confidence scores
     Agent->>Agent: Build interactive Plotly chart JSON
     Agent-->>User: Render Plotly dashboard + Anomaly report
 ```
 
 ---
 
-## Core Capabilities & Security Features
+## Core Capabilities and Security Features
 
 - **Natural Language to SQL**: Converts complex business questions into ANSI SQL queries with schema validation.
 - **Machine Learning Anomaly Detection**: Unsupervised Isolation Forest and Local Outlier Factor (LOF) models identify outliers in temporal and multi-variate business metrics.
-- **Prompt Injection Protection**: HuggingFace classifier and SQL AST parser block destructive statements (`DROP`, `DELETE`, `UPDATE`) and jailbreak attempts.
+- **Prompt Injection Protection**: HuggingFace classifier and SQL AST parser block destructive statements (DROP, DELETE, UPDATE) and jailbreak attempts.
 - **Interactive Visualization**: Generates Plotly JSON chart specifications directly rendered in frontend dashboards.
 
 ---
@@ -85,7 +90,7 @@ sequenceDiagram
 ```
 DataVigil/
 |-- docker-compose.yml          # Container orchestration (Backend + Frontend)
-|-- README.md                   # ASCII Architecture & User Documentation
+|-- README.md                   # ASCII Architecture and User Documentation
 |-- backend/
 |   |-- Dockerfile              # Python FastAPI & Scikit-learn container
 |   |-- requirements.txt        # FastAPI, LangGraph, Scikit-Learn, Plotly dependencies
@@ -105,7 +110,7 @@ DataVigil/
 ### Prerequisites
 - Python 3.10+
 - SQLite or PostgreSQL database instance
-- Docker & Docker Compose (Optional)
+- Docker and Docker Compose (Optional)
 
 ### Running Locally
 
