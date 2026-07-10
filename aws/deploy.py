@@ -31,7 +31,7 @@ try:
         ImageId=AMI_ID,
         MinCount=1,
         MaxCount=1,
-        InstanceType="t2.micro",
+        InstanceType="t3.micro",
         TagSpecifications=[
             {
                 "ResourceType": "instance",

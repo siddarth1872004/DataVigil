@@ -1,0 +1,72 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 2. Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: 3. Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 4. Build, Tag, and Push Image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: datavigil
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f backend/Dockerfile backend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: 5. Deploy to EC2 via EC2 Instance Connect
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: datavigil
+          IMAGE_TAG: latest
+        run: |
+          # Create temporary SSH key
+          ssh-keygen -t rsa -N "" -f temp_key
+          chmod 600 temp_key
+          
+          # Dynamically query the Availability Zone for the EC2 Instance
+          AZ=$(aws ec2 describe-instances --instance-ids ${{ secrets.EC2_INSTANCE_ID }} --query "Reservations[0].Instances[0].Placement.AvailabilityZone" --output text)
+          
+          # Send public key using EC2 Instance Connect
+          aws ec2-instance-connect send-ssh-public-key \
+            --instance-id ${{ secrets.EC2_INSTANCE_ID }} \
+            --instance-os-user ubuntu \
+            --ssh-public-key file://temp_key.pub \
+            --availability-zone $AZ
+            
+          # Wait 5 seconds for EIC key sync
+          sleep 5
+          
+          # SSH into EC2, install/configure Docker, and run the container
+          ssh -i temp_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PUBLIC_IP }} \
+            "sudo apt-get update -y && \
+             sudo apt-get install -y docker.io && \
+             sudo systemctl start docker && \
+             sudo systemctl enable docker && \
+             aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin $ECR_REGISTRY && \
+             sudo docker stop app || true && \
+             sudo docker rm app || true && \
+             sudo docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG && \
+             sudo docker run -d --name app -p 8000:8000 \
+               -e GEMINI_API_KEY=\"${{ secrets.GEMINI_API_KEY }}\" \
+               -e GOOGLE_API_KEY=\"${{ secrets.GEMINI_API_KEY }}\" \
+               -e OPENAI_API_KEY=\"${{ secrets.OPENAI_API_KEY }}\" \
+               $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
