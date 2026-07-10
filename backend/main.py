@@ -217,3 +217,21 @@ async def get_example_queries():
             "Find sensor readings with abnormal vibration levels",
         ]
     }
+
+# Serve static frontend SPA
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "static"))
+if os.path.exists(frontend_dir):
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dir, "assets")), name="assets")
+
+    @app.get("/")
+    @app.get("/{path_name:path}", include_in_schema=False)
+    async def serve_frontend(path_name: str = ""):
+        if path_name.startswith("api"):
+            raise HTTPException(status_code=404)
+        index_path = os.path.join(frontend_dir, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        return {"message": "Frontend not found"}
